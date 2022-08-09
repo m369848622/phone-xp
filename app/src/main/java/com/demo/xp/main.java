@@ -36,22 +36,22 @@ public class main implements IXposedHookLoadPackage {
         XposedHelpers.findAndHookConstructor("android.content.Intent", classLoader, String.class, Uri.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                Intent intent = start(Main_context);
+                Intent intent = start(Main_context, String.valueOf(param.args[1]));
                 param.setResult(intent);
             }
         });
 
     }
 
-    Intent start(Context context) {
+    Intent start(Context context,String phone) {
         Intent intent = new Intent();
         ComponentName comp = new ComponentName("com.atp.voiceapp", "com.tencent.liteav.demo.MainActivity");
         intent.setComponent(comp);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.setAction("android.intent.action.SEND");
         intent.setType("text/plain");
-        XposedBridge.log("call->" + "18615596666");
-        intent.putExtra(Intent.EXTRA_TEXT, "16464");
+        XposedBridge.log("call->" + phone.split("tel:")[1]);
+        intent.putExtra(Intent.EXTRA_TEXT, "666,"+phone.split("tel:")[1].replace("%20",""));
         context.startActivity(intent);
         return intent;
     }
