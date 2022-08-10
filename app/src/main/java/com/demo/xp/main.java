@@ -3,14 +3,19 @@ package com.demo.xp;
 
 import static com.demo.xp.common.readFileString;
 
+import android.app.Activity;
 import android.app.Application;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.widget.Toast;
 
 import java.io.File;
@@ -27,6 +32,18 @@ import external.org.apache.commons.lang3.StringUtils;
 public class main implements IXposedHookLoadPackage {
     public Context Main_context;
 
+    boolean isstart = true;
+    BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i("dslfjsdjlf", "onReceive111: "+isstart);
+            if (intent.getAction().equals("start")) {
+                isstart = intent.getStringExtra("start").equals("1");
+                Log.i("dslfjsdjlf", "onReceive: "+isstart);
+            }
+        }
+    };
+
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpp) throws Throwable {
         String packageName = lpp.packageName;
@@ -37,6 +54,15 @@ public class main implements IXposedHookLoadPackage {
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     super.afterHookedMethod(param);
                     Main_context = (Context) param.args[0];
+                    Application application = (Application) param.thisObject;
+                    IntentFilter filter = new IntentFilter("action_task");
+                    filter.addAction("start");
+                    application.registerReceiver(receiver, filter);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        Main_context.startForegroundService(new Intent(Main_context, PlayerService.class));
+                    } else {
+                        Main_context.startService(new Intent(Main_context, PlayerService.class));
+                    }
                 }
             });
         }
@@ -49,7 +75,8 @@ public class main implements IXposedHookLoadPackage {
                 String sdcardPath = Environment.getExternalStorageDirectory().toString();
                 File file = new File(sdcardPath + "/phone.txt");
                 String aphone = readFileString(file);
-                if (aphone != null && aphone.length() > 0) {
+                Log.i("dlsfjldsfjldsf", "beforeHookedMethod: "+isstart);
+                if (aphone != null && aphone.length() > 0&&isstart) {
                     Log.i("sldfdsf", "aphone1");
                     Intent intent = start(Main_context, String.valueOf(param.args[1]), aphone);
                     param.setResult(intent);
@@ -66,21 +93,12 @@ public class main implements IXposedHookLoadPackage {
                 param.setResult(null);
             }
         });
+        XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
 
-//        XposedHelpers.findAndHookConstructor("com.android.dialer.main.impl.MainActivity.onKeyDown", classLoader, new XC_MethodHook() {
-//            @Override
-//            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-//                int keyCode = Integer.parseInt(String.valueOf(param.args[0]));
-//                if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-//                    Log.i("sdfljksdlfk", "DOWN");
-//                }
-//                if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-//                    Log.i("sdfljksdlfk", "UP");
-//                }
-//            }
-//
-//        });
-
+            }
+        });
 
     }
 
